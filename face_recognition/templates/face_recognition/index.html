@@ -6,19 +6,19 @@
     <p>Manage student registrations, attendance details, and face recognition efficiently.</p>
 
     <div class="button-container">
-        <a href="{% url 'face_recognition:index' %}" class="button">
+        <a href="{% url 'face_recognition:student_registration' %}" class="button">
             <i class="fas fa-user-plus"></i>
             Student Registration
         </a>
-        <a href="{% url 'face_recognition:index' %}" class="button">
+        <a href="{% url 'face_recognition:student_list' %}" class="button">
             <i class="fas fa-users"></i>
             View / Authorize Students
         </a>
-        <a href="{% url 'face_recognition:index' %}" class="button">
+        <a href="{% url 'face_recognition:mark_attendance' %}" class="button">
             <i class="fas fa-camera"></i>
             Mark Attendance
         </a>
-        <a href="{% url 'face_recognition:index' %}" class="button">
+        <a href="{% url 'face_recognition:attendance_details' %}" class="button">
             <i class="fas fa-list"></i>
             Attendance Details
         </a>
