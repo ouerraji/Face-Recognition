@@ -1,0 +1,185 @@
+{% extends 'face_recognition/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="registration-container">
+    <div class="registration-card">
+        <div class="registration-header">
+            <a href="{% url 'face_recognition:index' %}" class="back-button">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+            <h1>Student Registration</h1>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="registration-form">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="name">Name:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="phone">Phone Number:</label>
+                    <input type="tel" id="phone" name="phone" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="class">Class:</label>
+                    <input type="text" id="class" name="class" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="speciality">Speciality:</label>
+                    <select id="speciality" name="speciality" required>
+                        <option value="GL">Génie Logiciel</option>
+                        <option value="DS">Data Science</option>
+                        <option value="RC">Réseau et Cloud</option>
+                    </select>
+                </div>
+            </div>
+
+             <div class="form-row">
+        <div class="form-group camera-section">
+            <label>Capture Photo:</label>
+            <div class="camera-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display: none;"></canvas>
+                <div id="camera-error" class="error-message" style="display: none; color: red; margin-top: 10px;"></div>
+
+                <div id="debug-info" style="font-size: 12px; margin-top: 10px; color: #666;"></div>
+                <input type="hidden" name="image" id="image-data">
+            </div>
+            <button type="button" id="capture-btn" class="capture-button" disabled>
+                <i class="fas fa-camera"></i> Capture
+            </button>
+        </div>
+    </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-button">Register Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+
+console.log("JavaScript Loaded");
+
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const captureButton = document.getElementById('capture-btn');
+    const errorDisplay = document.getElementById('camera-error');
+    const debugInfo = document.getElementById('debug-info');
+    let stream = null;
+    console.log("EE")
+
+
+    function updateDebugInfo(message) {
+        console.log('Debug:', message);
+        debugInfo.innerHTML += `<div>${message}</div>`;
+    }
+
+    async function checkCameraSupport() {
+        updateDebugInfo('Checking camera support...');
+
+        // Check if running in a secure context
+        if (!window.isSecureContext) {
+            throw new Error('Page must be served over HTTPS or localhost');
+        }
+
+        // Check for mediaDevices support
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Camera API not supported');
+        }
+
+        // List available devices
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const videoDevices = devices.filter(device => device.kind === 'videoinput');
+            updateDebugInfo(`Found ${videoDevices.length} video devices`);
+            if (videoDevices.length === 0) {
+                throw new Error('No video devices found');
+            }
+        } catch (err) {
+            throw new Error(`Error checking devices: ${err.message}`);
+        }
+    }
+
+    async function startCamera() {
+        try {
+            updateDebugInfo('Starting camera initialization...');
+            await checkCameraSupport();
+
+            updateDebugInfo('Requesting camera access...');
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    width: { ideal: 640 },
+                    height: { ideal: 480 },
+                    facingMode: 'user'
+                }
+            });
+
+            updateDebugInfo('Camera access granted, setting up video stream...');
+            video.srcObject = stream;
+
+            video.onloadedmetadata = () => {
+                updateDebugInfo('Video metadata loaded');
+                captureButton.disabled = false;
+                errorDisplay.style.display = 'none';
+            };
+
+            video.onplay = () => {
+                updateDebugInfo('Video stream started playing');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+            };
+
+            video.onerror = (err) => {
+                updateDebugInfo(`Video error: ${err.message}`);
+            };
+
+        } catch (err) {
+            console.error("Camera error:", err);
+            errorDisplay.textContent = `Camera error: ${err.message}`;
+            errorDisplay.style.display = 'block';
+            updateDebugInfo(`Error: ${err.message}`);
+            captureButton.disabled = true;
+        }
+    }
+
+    // Capture photo
+    captureButton.addEventListener('click', () => {
+        if (!stream) return;
+
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        updateDebugInfo('Photo captured');
+    });
+
+    // Initialize when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+        updateDebugInfo('Page loaded, initializing camera...');
+        console.log("im in")
+        startCamera();
+    });
+
+    // Clean up
+    window.addEventListener('beforeunload', () => {
+        if (stream) {
+            updateDebugInfo('Cleaning up camera stream...');
+            stream.getTracks().forEach(track => track.stop());
+        }
+    });
+{% endblock %}
