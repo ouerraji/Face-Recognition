@@ -9,7 +9,8 @@ from django.shortcuts import render,redirect
 from django.contrib import messages
 
 from face_recognition.models import Student
-
+from django.shortcuts import render, redirect
+from django.contrib.auth import authenticate, login
 
 def index(request):
     return render(request, 'face_recognition/index.html')
@@ -45,7 +46,7 @@ def student_registration(request):
                 )
 
                 # Save the image
-                student.photo.save(f"{email}_photo.jpg", image_content, save=False)
+                student.photo.save(f"{name}.jpg", image_content, save=False)
                 student.save()
 
                 return redirect('face_recognition:index')
@@ -61,12 +62,28 @@ def student_registration(request):
 
     return render(request, 'face_recognition/student_registration.html')
 
+
+def teacher_login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None and user.is_staff:
+            login(request, user)
+            return redirect('face_recognition:student_list')
+        else:
+            messages.error(request, 'Invalid credentials or insufficient permissions.')
+
+    return render(request, 'face_recognition/teacher_login.html')
+
+@login_required(login_url='face_recognition:teacher_login')
 def student_list(request):
     # Get unauthorized students only
     students = Student.objects.filter(authorized=False)
     return render(request, 'face_recognition/student_list.html', {'students': students})
 
-
+@login_required(login_url='face_recognition:teacher_login')
 def authorize_student(request, student_id):
     if request.method == 'POST':
         try:
